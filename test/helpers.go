@@ -33,7 +33,7 @@ func LoadRSAPublicKeyFromDisk(location string) *rsa.PublicKey {
 }
 
 // MakeSampleToken creates and returns a encoded JWT token that has been signed with the specified cryptographic key.
-func MakeSampleToken(c jwt.Claims, method jwt.SigningMethod, key interface{}) string {
+func MakeSampleToken[T jwt.Key](c jwt.Claims, method jwt.SigningMethod[T], key interface{}) string {
 	token := jwt.NewWithClaims(method, c)
 	s, e := token.SignedString(key)
 

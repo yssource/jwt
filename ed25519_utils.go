@@ -39,7 +39,7 @@ func ParseEdPrivateKeyFromPEM(key []byte) (crypto.PrivateKey, error) {
 }
 
 // ParseEdPublicKeyFromPEM parses a PEM-encoded Edwards curve public key
-func ParseEdPublicKeyFromPEM(key []byte) (crypto.PublicKey, error) {
+func ParseEdPublicKeyFromPEM(key []byte) (*ed25519.PublicKey, error) {
 	var err error
 
 	// Parse PEM block
@@ -60,5 +60,5 @@ func ParseEdPublicKeyFromPEM(key []byte) (crypto.PublicKey, error) {
 		return nil, ErrNotEdPublicKey
 	}
 
-	return pkey, nil
+	return &pkey, nil
 }

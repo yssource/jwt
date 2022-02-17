@@ -1,12 +1,15 @@
 package jwt
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"time"
 )
-
 
 // DecodePaddingAllowed will switch the codec used for decoding JWTs respectively. Note that the JWS RFC7515
 // states that the tokens will utilize a Base64url encoding with no padding. Unfortunately, some implementations
@@ -24,13 +27,23 @@ var TimeFunc = time.Now
 // the key for verification.  The function receives the parsed,
 // but unverified Token.  This allows you to use properties in the
 // Header of the token (such as `kid`) to identify which key to use.
-type Keyfunc func(*Token) (interface{}, error)
+type Keyfunc[T Key] func(*Token[T]) (T, error)
+
+type Key interface {
+	[]byte |
+		*rsa.PublicKey |
+		*ecdsa.PublicKey |
+		*ed25519.PublicKey |
+		ed25519.PublicKey |
+		unsafeNoneMagicConstant |
+		crypto.PublicKey // TODO: get rid of any in the future
+}
 
 // Token represents a JWT Token.  Different fields will be used depending on whether you're
 // creating or parsing/verifying a token.
-type Token struct {
+type Token[T Key] struct {
 	Raw       string                 // The raw token.  Populated when you Parse a token
-	Method    SigningMethod          // The signing method used or to be used
+	Method    SigningMethod[T]       // The signing method used or to be used
 	Header    map[string]interface{} // The first segment of the token
 	Claims    Claims                 // The second segment of the token
 	Signature string                 // The third segment of the token.  Populated when you Parse a token
@@ -38,13 +51,13 @@ type Token struct {
 }
 
 // New creates a new Token with the specified signing method and an empty map of claims.
-func New(method SigningMethod) *Token {
+func New[T Key](method SigningMethod[T]) *Token[T] {
 	return NewWithClaims(method, MapClaims{})
 }
 
 // NewWithClaims creates a new Token with the specified signing method and claims.
-func NewWithClaims(method SigningMethod, claims Claims) *Token {
-	return &Token{
+func NewWithClaims[T Key](method SigningMethod[T], claims Claims) *Token[T] {
+	return &Token[T]{
 		Header: map[string]interface{}{
 			"typ": "JWT",
 			"alg": method.Alg(),
@@ -56,7 +69,7 @@ func NewWithClaims(method SigningMethod, claims Claims) *Token {
 
 // SignedString creates and returns a complete, signed JWT.
 // The token is signed using the SigningMethod specified in the token.
-func (t *Token) SignedString(key interface{}) (string, error) {
+func (t *Token[T]) SignedString(key interface{}) (string, error) {
 	var sig, sstr string
 	var err error
 	if sstr, err = t.SigningString(); err != nil {
@@ -72,7 +85,7 @@ func (t *Token) SignedString(key interface{}) (string, error) {
 // most expensive part of the whole deal.  Unless you
 // need this for something special, just go straight for
 // the SignedString.
-func (t *Token) SigningString() (string, error) {
+func (t *Token[T]) SigningString() (string, error) {
 	var err error
 	var jsonValue []byte
 
@@ -96,11 +109,11 @@ func (t *Token) SigningString() (string, error) {
 // validate the 'alg' claim in the token matches the expected algorithm.
 // For more details about the importance of validating the 'alg' claim,
 // see https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
-func Parse(tokenString string, keyFunc Keyfunc, options ...ParserOption) (*Token, error) {
+func Parse[T Key](tokenString string, keyFunc Keyfunc[T], options ...ParserOption[T]) (*Token[T], error) {
 	return NewParser(options...).Parse(tokenString, keyFunc)
 }
 
-func ParseWithClaims(tokenString string, claims Claims, keyFunc Keyfunc, options ...ParserOption) (*Token, error) {
+func ParseWithClaims[T Key](tokenString string, claims Claims, keyFunc Keyfunc[T], options ...ParserOption[T]) (*Token[T], error) {
 	return NewParser(options...).ParseWithClaims(tokenString, claims, keyFunc)
 }
 

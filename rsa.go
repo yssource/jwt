@@ -23,19 +23,19 @@ var (
 func init() {
 	// RS256
 	SigningMethodRS256 = &SigningMethodRSA{"RS256", crypto.SHA256}
-	RegisterSigningMethod(SigningMethodRS256.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodRS256.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodRS256
 	})
 
 	// RS384
 	SigningMethodRS384 = &SigningMethodRSA{"RS384", crypto.SHA384}
-	RegisterSigningMethod(SigningMethodRS384.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodRS384.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodRS384
 	})
 
 	// RS512
 	SigningMethodRS512 = &SigningMethodRSA{"RS512", crypto.SHA512}
-	RegisterSigningMethod(SigningMethodRS512.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodRS512.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodRS512
 	})
 }
@@ -46,20 +46,13 @@ func (m *SigningMethodRSA) Alg() string {
 
 // Verify implements token verification for the SigningMethod
 // For this signing method, must be an *rsa.PublicKey structure.
-func (m *SigningMethodRSA) Verify(signingString, signature string, key interface{}) error {
+func (m *SigningMethodRSA) Verify(signingString, signature string, key *rsa.PublicKey) error {
 	var err error
 
 	// Decode the signature
 	var sig []byte
 	if sig, err = DecodeSegment(signature); err != nil {
 		return err
-	}
-
-	var rsaKey *rsa.PublicKey
-	var ok bool
-
-	if rsaKey, ok = key.(*rsa.PublicKey); !ok {
-		return ErrInvalidKeyType
 	}
 
 	// Create hasher
@@ -70,7 +63,7 @@ func (m *SigningMethodRSA) Verify(signingString, signature string, key interface
 	hasher.Write([]byte(signingString))
 
 	// Verify the signature
-	return rsa.VerifyPKCS1v15(rsaKey, m.Hash, hasher.Sum(nil), sig)
+	return rsa.VerifyPKCS1v15(key, m.Hash, hasher.Sum(nil), sig)
 }
 
 // Sign implements token signing for the SigningMethod

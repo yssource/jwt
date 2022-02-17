@@ -32,19 +32,19 @@ var (
 func init() {
 	// ES256
 	SigningMethodES256 = &SigningMethodECDSA{"ES256", crypto.SHA256, 32, 256}
-	RegisterSigningMethod(SigningMethodES256.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodES256.Alg(), func() SigningMethod[*ecdsa.PublicKey] {
 		return SigningMethodES256
 	})
 
 	// ES384
 	SigningMethodES384 = &SigningMethodECDSA{"ES384", crypto.SHA384, 48, 384}
-	RegisterSigningMethod(SigningMethodES384.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodES384.Alg(), func() SigningMethod[*ecdsa.PublicKey] {
 		return SigningMethodES384
 	})
 
 	// ES512
 	SigningMethodES512 = &SigningMethodECDSA{"ES512", crypto.SHA512, 66, 521}
-	RegisterSigningMethod(SigningMethodES512.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodES512.Alg(), func() SigningMethod[*ecdsa.PublicKey] {
 		return SigningMethodES512
 	})
 }
@@ -55,22 +55,13 @@ func (m *SigningMethodECDSA) Alg() string {
 
 // Verify implements token verification for the SigningMethod.
 // For this verify method, key must be an ecdsa.PublicKey struct
-func (m *SigningMethodECDSA) Verify(signingString, signature string, key interface{}) error {
+func (m *SigningMethodECDSA) Verify(signingString, signature string, key *ecdsa.PublicKey) error {
 	var err error
 
 	// Decode the signature
 	var sig []byte
 	if sig, err = DecodeSegment(signature); err != nil {
 		return err
-	}
-
-	// Get the key
-	var ecdsaKey *ecdsa.PublicKey
-	switch k := key.(type) {
-	case *ecdsa.PublicKey:
-		ecdsaKey = k
-	default:
-		return ErrInvalidKeyType
 	}
 
 	if len(sig) != 2*m.KeySize {
@@ -88,7 +79,7 @@ func (m *SigningMethodECDSA) Verify(signingString, signature string, key interfa
 	hasher.Write([]byte(signingString))
 
 	// Verify the signature
-	if verifystatus := ecdsa.Verify(ecdsaKey, hasher.Sum(nil), r, s); verifystatus {
+	if verifystatus := ecdsa.Verify(key, hasher.Sum(nil), r, s); verifystatus {
 		return nil
 	}
 
@@ -114,6 +105,9 @@ func (m *SigningMethodECDSA) Sign(signingString string, key interface{}) (string
 
 	hasher := m.Hash.New()
 	hasher.Write([]byte(signingString))
+
+	var s crypto.Signer = ecdsaKey
+	s.Sign(rand.Reader, hasher.Sum(nil), nil)
 
 	// Sign the string and return r, s
 	if r, s, err := ecdsa.Sign(rand.Reader, ecdsaKey, hasher.Sum(nil)); err == nil {

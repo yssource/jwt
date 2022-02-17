@@ -128,7 +128,7 @@ func verifyToken() error {
 	}
 
 	// Parse the token.  Load the key from command line option
-	token, err := jwt.Parse(string(tokData), func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse[any](string(tokData), func(t *jwt.Token[any]) (any, error) {
 		if isNone() {
 			return jwt.UnsafeAllowNoneSignatureType, nil
 		}
@@ -206,7 +206,7 @@ func signToken() error {
 	}
 
 	// get the signing alg
-	alg := jwt.GetSigningMethod(*flagAlg)
+	alg := jwt.GetSigningMethod[any](*flagAlg)
 	if alg == nil {
 		return fmt.Errorf("couldn't find signing method: %v", *flagAlg)
 	}
@@ -273,7 +273,7 @@ func showToken() error {
 		fmt.Fprintf(os.Stderr, "Token len: %v bytes\n", len(tokData))
 	}
 
-	token, err := jwt.Parse(string(tokData), nil)
+	token, err := jwt.Parse[any](string(tokData), nil)
 	if token == nil {
 		return fmt.Errorf("malformed token: %w", err)
 	}

@@ -1,6 +1,7 @@
 package request
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -58,14 +59,14 @@ func TestParseRequest(t *testing.T) {
 	// load keys from disk
 	privateKey := test.LoadRSAPrivateKeyFromDisk("../test/sample_key")
 	publicKey := test.LoadRSAPublicKeyFromDisk("../test/sample_key.pub")
-	keyfunc := func(*jwt.Token) (interface{}, error) {
+	keyfunc := func(*jwt.Token[*rsa.PublicKey]) (*rsa.PublicKey, error) {
 		return publicKey, nil
 	}
 
 	// Bearer token request
 	for _, data := range requestTestData {
 		// Make token from claims
-		tokenString := test.MakeSampleToken(data.claims, jwt.SigningMethodRS256, privateKey)
+		tokenString := test.MakeSampleToken[*rsa.PublicKey](data.claims, jwt.SigningMethodRS256, privateKey)
 
 		// Make query string
 		for k, vv := range data.query {

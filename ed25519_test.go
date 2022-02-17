@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/ed25519"
 )
 
 var ed25519TestData = []struct {
@@ -47,7 +48,7 @@ func TestEd25519Verify(t *testing.T) {
 
 		parts := strings.Split(data.tokenString, ".")
 
-		method := jwt.GetSigningMethod(data.alg)
+		method := jwt.GetSigningMethod[*ed25519.PublicKey](data.alg)
 
 		err = method.Verify(strings.Join(parts[0:2], "."), parts[2], ed25519Key)
 		if data.valid && err != nil {
@@ -71,7 +72,7 @@ func TestEd25519Sign(t *testing.T) {
 
 		parts := strings.Split(data.tokenString, ".")
 
-		method := jwt.GetSigningMethod(data.alg)
+		method := jwt.GetSigningMethod[*ed25519.PublicKey](data.alg)
 
 		sig, err := method.Sign(strings.Join(parts[0:2], "."), ed25519Key)
 		if err != nil {

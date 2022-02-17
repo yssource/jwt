@@ -24,19 +24,19 @@ var (
 func init() {
 	// HS256
 	SigningMethodHS256 = &SigningMethodHMAC{"HS256", crypto.SHA256}
-	RegisterSigningMethod(SigningMethodHS256.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodHS256.Alg(), func() SigningMethod[[]byte] {
 		return SigningMethodHS256
 	})
 
 	// HS384
 	SigningMethodHS384 = &SigningMethodHMAC{"HS384", crypto.SHA384}
-	RegisterSigningMethod(SigningMethodHS384.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodHS384.Alg(), func() SigningMethod[[]byte] {
 		return SigningMethodHS384
 	})
 
 	// HS512
 	SigningMethodHS512 = &SigningMethodHMAC{"HS512", crypto.SHA512}
-	RegisterSigningMethod(SigningMethodHS512.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodHS512.Alg(), func() SigningMethod[[]byte] {
 		return SigningMethodHS512
 	})
 }
@@ -46,13 +46,7 @@ func (m *SigningMethodHMAC) Alg() string {
 }
 
 // Verify implements token verification for the SigningMethod. Returns nil if the signature is valid.
-func (m *SigningMethodHMAC) Verify(signingString, signature string, key interface{}) error {
-	// Verify the key is the right type
-	keyBytes, ok := key.([]byte)
-	if !ok {
-		return ErrInvalidKeyType
-	}
-
+func (m *SigningMethodHMAC) Verify(signingString, signature string, key []byte) error {
 	// Decode signature, for comparison
 	sig, err := DecodeSegment(signature)
 	if err != nil {
@@ -67,7 +61,7 @@ func (m *SigningMethodHMAC) Verify(signingString, signature string, key interfac
 	// This signing method is symmetric, so we validate the signature
 	// by reproducing the signature from the signing string and key, then
 	// comparing that against the provided signature.
-	hasher := hmac.New(m.Hash.New, keyBytes)
+	hasher := hmac.New(m.Hash.New, key)
 	hasher.Write([]byte(signingString))
 	if !hmac.Equal(sig, hasher.Sum(nil)) {
 		return ErrSignatureInvalid

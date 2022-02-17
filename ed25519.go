@@ -23,7 +23,7 @@ var (
 
 func init() {
 	SigningMethodEdDSA = &SigningMethodEd25519{}
-	RegisterSigningMethod(SigningMethodEdDSA.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodEdDSA.Alg(), func() SigningMethod[ed25519.PublicKey] {
 		return SigningMethodEdDSA
 	})
 }
@@ -34,14 +34,13 @@ func (m *SigningMethodEd25519) Alg() string {
 
 // Verify implements token verification for the SigningMethod.
 // For this verify method, key must be an ed25519.PublicKey
-func (m *SigningMethodEd25519) Verify(signingString, signature string, key interface{}) error {
+func (m *SigningMethodEd25519) Verify(signingString, signature string, key ed25519.PublicKey) error {
 	var err error
 	var ed25519Key ed25519.PublicKey
-	var ok bool
 
-	if ed25519Key, ok = key.(ed25519.PublicKey); !ok {
+	/*if ed25519Key, ok = key.(ed25519.PublicKey); !ok {
 		return ErrInvalidKeyType
-	}
+	}*/
 
 	if len(ed25519Key) != ed25519.PublicKeySize {
 		return ErrInvalidKey

@@ -1,3 +1,4 @@
+//go:build go1.4
 // +build go1.4
 
 package jwt
@@ -40,7 +41,7 @@ func init() {
 			SaltLength: rsa.PSSSaltLengthAuto,
 		},
 	}
-	RegisterSigningMethod(SigningMethodPS256.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodPS256.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodPS256
 	})
 
@@ -57,7 +58,7 @@ func init() {
 			SaltLength: rsa.PSSSaltLengthAuto,
 		},
 	}
-	RegisterSigningMethod(SigningMethodPS384.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodPS384.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodPS384
 	})
 
@@ -74,28 +75,20 @@ func init() {
 			SaltLength: rsa.PSSSaltLengthAuto,
 		},
 	}
-	RegisterSigningMethod(SigningMethodPS512.Alg(), func() SigningMethod {
+	RegisterSigningMethod(SigningMethodPS512.Alg(), func() SigningMethod[*rsa.PublicKey] {
 		return SigningMethodPS512
 	})
 }
 
 // Verify implements token verification for the SigningMethod.
 // For this verify method, key must be an rsa.PublicKey struct
-func (m *SigningMethodRSAPSS) Verify(signingString, signature string, key interface{}) error {
+func (m *SigningMethodRSAPSS) Verify(signingString, signature string, key *rsa.PublicKey) error {
 	var err error
 
 	// Decode the signature
 	var sig []byte
 	if sig, err = DecodeSegment(signature); err != nil {
 		return err
-	}
-
-	var rsaKey *rsa.PublicKey
-	switch k := key.(type) {
-	case *rsa.PublicKey:
-		rsaKey = k
-	default:
-		return ErrInvalidKey
 	}
 
 	// Create hasher
@@ -110,7 +103,7 @@ func (m *SigningMethodRSAPSS) Verify(signingString, signature string, key interf
 		opts = m.VerifyOptions
 	}
 
-	return rsa.VerifyPSS(rsaKey, m.Hash, hasher.Sum(nil), sig, opts)
+	return rsa.VerifyPSS(key, m.Hash, hasher.Sum(nil), sig, opts)
 }
 
 // Sign implements token signing for the SigningMethod.

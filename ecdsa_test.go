@@ -64,7 +64,7 @@ func TestECDSAVerify(t *testing.T) {
 
 		parts := strings.Split(data.tokenString, ".")
 
-		method := jwt.GetSigningMethod(data.alg)
+		method := jwt.GetSigningMethod[*ecdsa.PublicKey](data.alg)
 		err = method.Verify(strings.Join(parts[0:2], "."), parts[2], ecdsaKey)
 		if data.valid && err != nil {
 			t.Errorf("[%v] Error while verifying key: %v", data.name, err)
@@ -88,7 +88,7 @@ func TestECDSASign(t *testing.T) {
 		if data.valid {
 			parts := strings.Split(data.tokenString, ".")
 			toSign := strings.Join(parts[0:2], ".")
-			method := jwt.GetSigningMethod(data.alg)
+			method := jwt.GetSigningMethod[*ecdsa.PublicKey](data.alg)
 			sig, err := method.Sign(toSign, ecdsaKey)
 
 			if err != nil {
@@ -98,7 +98,7 @@ func TestECDSASign(t *testing.T) {
 				t.Errorf("[%v] Identical signatures\nbefore:\n%v\nafter:\n%v", data.name, parts[2], sig)
 			}
 
-			err = method.Verify(toSign, sig, ecdsaKey.Public())
+			err = method.Verify(toSign, sig, ecdsaKey.Public().(*ecdsa.PublicKey))
 			if err != nil {
 				t.Errorf("[%v] Sign produced an invalid signature: %v", data.name, err)
 			}
@@ -133,7 +133,7 @@ func BenchmarkECDSASigning(b *testing.B) {
 			b.Fatalf("Unable to parse ECDSA private key: %v", err)
 		}
 
-		method := jwt.GetSigningMethod(data.alg)
+		method := jwt.GetSigningMethod[*ecdsa.PublicKey](data.alg)
 
 		b.Run(data.name, func(b *testing.B) {
 			benchmarkSigning(b, method, ecdsaKey)
